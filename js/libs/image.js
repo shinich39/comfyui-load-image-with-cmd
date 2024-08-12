@@ -1577,12 +1577,12 @@ app.registerExtension({
           const url = new URL(img.src);
           const obj = parseURL(url);
           const filePath = parseObjectURL(obj).filePath;
-          await node.pkg39.loadImageByPath(filePath);
+          await node.statics.loadImageByPath(filePath);
         }
       }
     }    
 
-    // add "Send to pkg39" to preview image menu
+    // add "Send to input" to preview image menu
 		const origGetExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
 		nodeType.prototype.getExtraMenuOptions = function (_, options) {
 			const r = origGetExtraMenuOptions ? origGetExtraMenuOptions.apply(this, arguments) : undefined;

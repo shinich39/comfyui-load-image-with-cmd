@@ -39,10 +39,10 @@ Canvas controls \(while focus on the node\):
 - Mouse move while wheel click: Move canvas.  
 - Mouse move while press space bar: Move canvas.  
   
-The primitive node load nodes and values from embedded workflow in loaded image by javascript.  
-Copy and paste to textarea on primitive node and use it after customize.  
+Connect PrimitiveNode to "command" input for loading workflow.  
+Copy and paste to textarea on PrimitiveNode and start generating it after customize.  
 
-- Full code for high resolution fix
+- Full code for Hi-Res Fix
 ```js
 var n1 = find(1); // Load image
 var n11 = find(11); // VAE Encode

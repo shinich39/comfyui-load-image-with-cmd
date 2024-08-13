@@ -1510,7 +1510,7 @@ function getDefaultCommandValue() {
   text += `\n// connect(Node, Node, INPUT_NAME|OUTPUT_NAME)`;
   text += `\n// getValues(Node [, isActual]) => Object: Get widget values in node.`;
   text += `\n// setValues(Node, values [, isActual])`;
-  text += `\n// getNode(srcNode, dstNode, name, replaceNodes|null) => Node[]: Get nodes or values from image workflow.`;
+  text += `\n// getNode(srcNode, dstNode, name, [, replaceNodes]) => Node[]: Get nodes or values from image workflow.`;
   return text;
 }
 
@@ -1623,7 +1623,6 @@ app.registerExtension({
               }),
             },
           },
-
         ];
         
         options.splice(

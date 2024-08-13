@@ -5,28 +5,13 @@ const SAMPLER_TYPES = [
   "KSamplerAdvanced"
 ];
 
-const SAMPLER_KEYS = [
-  "model",
-  "positive",
-  "negative",
-  "latent_image",
-  "seed",
-  "noise_seed",
-  "cfg",
-  "denoise",
-  "steps",
-  "start_at_step",
-  "end_at_step",
-  "scheduler",
-  "sampler_name",
-];
-
 /**
  * 
- * @param {object} info 
+ * @param {object} workflow 
+ * @param {object} sampler 
  * @returns 
  */
-function getNodeMap({ workflow, sampler }) {
+function getNodeMap(workflow, sampler) {
   let w = JSON.parse(JSON.stringify(workflow)),
       f = [], 
       b = [];
@@ -116,49 +101,57 @@ function getNodeMap({ workflow, sampler }) {
 
 /**
  * 
- * @param {object} info 
- * @returns {{id: string, type: string, title: string|null }[]}
- */
-function getSamplerNodes({ workflow, prompt }) {
-  return Object.entries(prompt)
-    .reduce((acc, [k, v]) => {
-      if (SAMPLER_TYPES.indexOf(v.class_type) > -1) {
-        let id = parseInt(k);
-        let type = v.class_type;
-        let title = workflow?.nodes?.find(e => e.id === id)?.title ?? null;
-        acc.push({ id, type, title });
-      }
-      return acc;
-    }, [])
-    .sort((a, b) => {
-      return a._id - b._id;
-    });
-}
-
-/**
- * 
- * @param {object} info 
+ * @param {object} workflow 
+ * @param {number} nodeId 
  * @returns 
  */
-function getLastNode({ workflow, sampler }) {
-  workflow = JSON.parse(JSON.stringify(workflow));
-  workflow = unwind(workflow);
+function getFlow(workflow, nodeId) {
+  let w = JSON.parse(JSON.stringify(workflow)),
+      f = [], 
+      b = [];
 
-  let steps = [];
-  search(workflow, steps, 0, sampler.id);
-  let lastNode = steps[steps.length - 1]?.[0];
+  searchBackward(w, b, 0, nodeId);
+  searchForward(w, f, 0, nodeId);
 
-  if (!lastNode) {
-    throw new Error("Last node not found.");
+  const nodeMap = [...b.slice(1).reverse(), ...f];
+  const nodeIds = [];
+  const nodes = [];
+  const linkIds = [];
+  const links = [];
+
+  for (const m of nodeMap) {
+    for (const n of m) {
+      if (nodeIds.indexOf(n.id) === -1) {
+        nodeIds.push(n.id);
+        nodes.push(n);
+      }
+    }
   }
 
-  return {
-    id: lastNode.id,
-    type: lastNode.type,
-    title: lastNode.title,
+  nodes.sort((a, b) => a.id - b.id);
+
+  for (const l of w.links) {
+    const linkId = l[0];
+    const originId = l[1];
+    const targetId = l[3];
+    if (nodeIds.indexOf(originId) > -1 && nodeIds.indexOf(targetId) > -1) {
+      if (linkIds.indexOf(linkId) === -1) {
+        linkIds.push(linkId);
+        links.push(l);
+      }
+    }
   }
 
-  function search(w, acc, i, id) {
+  links.sort((a, b) => a[0] - b[0]);
+
+  w.nodes = nodes;
+  w.links = links;
+  w.last_link_id = nodes[nodes.length - 1].id;
+  w.last_link_id = links[links.length - 1][0];
+
+  return w;
+  
+  function searchForward(w, acc, i, id) {
     const node = w.nodes.find((n) => n.id === id);
     if (!acc[i]) {
       acc[i] = [node];
@@ -166,50 +159,38 @@ function getLastNode({ workflow, sampler }) {
       acc[i].push(node);
     }
 
-    if (!node.outputs) {
-      return;
-    }
-
-    for (const output of node.outputs) {
-      for (const link of output) {
-        if (link.type !== "LATENT" && link.type !== "IMAGE") {
-          console.error(`${link.type} is not LATENT or IMAGE`);
-          continue;
-        }
-        const n = link.targetNode;
-        search(w, acc, i + 1, n.id);
-      }
+    const links = w.links.filter(e => e && e[1] === node.id);
+    for (const link of links) {
+      const targetId = link[3];
+      searchForward(w, acc, i + 1, targetId);
     }
   }
 
-  function unwind(w) {
-    w.links = w.links
-      .filter((l) => !!l)
-      .map((l) => {
-        return {
-          id: l.id,
-          type: l.type,
-          originNode: w.nodes.find((e) => e.id === l.origin_id),
-          originSlot: l.origin_slot,
-          targetNode: w.nodes.find((e) => e.id === l.target_id),
-          targetSlot: l.target_slot,
-        }
-      });
-
-    for (const n of w.nodes) {
-      n.inputs = n.inputs?.map((i) => {
-        return w.links.find((l) => l.id === i.link);
-      });
-
-      n.outputs = n.outputs?.map((o) => {
-        return o.links?.filter(l => l).map((l) => {
-          return w.links.find((_l) => _l.id === l);
-        });
-      });
+  function searchBackward(w, acc, i, id) {
+    const node = w.nodes.find((n) => n.id === id);
+    if (!acc[i]) {
+      acc[i] = [node];
+    } else {
+      acc[i].push(node);
     }
 
-    return w;
+    const links = w.links.filter(e => e && e[3] === node.id);
+    for (const link of links) {
+      const originId = link[1];
+      searchBackward(w, acc, i + 1, originId);
+    }
   }
 }
 
-export { getSamplerNodes, getLastNode, getNodeMap }
+/**
+ * 
+ * @param {object} workflow 
+ * @returns {{id: string, type: string, title: string|null }[]}
+ */
+function getSamplerNodes(workflow) {
+  return workflow.nodes.filter(e => SAMPLER_TYPES.indexOf(e.type) > -1)
+    .map(e => e)
+    .sort((a, b) => a.id - b.id);
+}
+
+export { getSamplerNodes, getNodeMap, getFlow, }

@@ -163,4 +163,5 @@ export {
   selectNode,
   parseObjectURL,
   getPathFromURL,
+  parseURL,
 }

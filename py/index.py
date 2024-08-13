@@ -1,3 +1,4 @@
+from .libs import workflow
 from .libs.image import LoadImageWithCMD
 
 NODE_CLASS_MAPPINGS = {

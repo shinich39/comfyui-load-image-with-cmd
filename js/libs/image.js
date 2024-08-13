@@ -9,7 +9,9 @@ import {
   getImageURL,
   renderCanvas,
   selectNode,
+  parseURL,
   parseObjectURL,
+  getPathFromURL,
   getRandomSeed,
 } from "./comfy-utils.js";
 
@@ -209,8 +211,13 @@ function initLoadImageNode() {
               if (!image.info || !image.info.workflow || !image.info.prompt) {
                 continue;
               }
-              const workflow = JSON.parse(image.info.workflow);
-              const prompt = JSON.parse(image.info.prompt);
+              for (const key of Object.keys(image.info)) {
+                try {
+                  image.info[key] = JSON.parse(image.info[key]);
+                } catch(err) {
+
+                }
+              }
               this.statics.loadedImages.push({
                 origPath: image["original_path"],
                 origName: image["original_name"],
@@ -221,8 +228,7 @@ function initLoadImageNode() {
                 width: image.width,
                 height: image.height,
                 format: image.format,
-                workflow,
-                prompt,
+                info: image.info,
               });
             } catch(err) {
               // console.error(err);
@@ -401,9 +407,18 @@ function initLoadImageNode() {
         }
     
         let { selectedImage, selectedIndex } = this.statics;
-        let { width, height, prompt, workflow } = selectedImage;
-        let samplerNodes = getSamplerNodes({ workflow, prompt });
-    
+        let { width, height, info } = selectedImage;
+        let { workflow, prompt, flow } = info;
+
+        if (typeof flow === "object") {
+          workflow = flow;
+        }
+        if (typeof workflow !== "object") {
+          return;
+        }
+
+        let samplerNodes = getSamplerNodes(workflow);
+
         // remove command nodes in workflow
         removeNodesFromWorkflow(workflow);
     
@@ -414,7 +429,7 @@ function initLoadImageNode() {
     
         // parse workflow
         samplerNodes = samplerNodes.map(sampler => {
-          const nodeMap = getNodeMap({ workflow, sampler });
+          const nodeMap = getNodeMap(workflow, sampler);
           const samplers = nodeMap.reduce((acc, cur) => {
             for (const {id, type} of cur) {
               if (type === "KSampler" || type === "KSamplerAdvanced") {
@@ -434,7 +449,7 @@ function initLoadImageNode() {
         });
     
         // put the map in long order
-        samplerNodes.sort((a, b) => b.map.length - a.map.length);
+        samplerNodes.sort((a, b) => b.nodeMap.length - a.nodeMap.length);
     
         const samplerMaps = samplerNodes.map(e => e.samplers);
         const nodeMaps = samplerNodes.map(e => e.nodeMap);
@@ -1499,20 +1514,6 @@ function getDefaultCommandValue() {
   return text;
 }
 
-async function saveImage(filePath) {
-  const response = await api.fetchApi(`/shinich39/load-image-with-cmd/save_image`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", },
-    body: JSON.stringify({ path: filePath }),
-  });
-
-  if (response.status !== 200) {
-    throw new Error(response.statusText);
-  }
-
-  return true;
-}
-
 // api.addEventListener("promptQueued", () => {});
 api.addEventListener("executed", fixPreviewImages);
 api.addEventListener("executing", executedHandler);
@@ -1541,6 +1542,20 @@ app.registerExtension({
         }
       }
       return nodes;
+    }
+
+    async function saveImage(filePath) {
+      const response = await api.fetchApi(`/shinich39/load-image-with-cmd/save_image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({ path: filePath }),
+      });
+    
+      if (response.status !== 200) {
+        throw new Error(response.statusText);
+      }
+    
+      return true;
     }
 
     async function sendToInput() {
@@ -1595,7 +1610,7 @@ app.registerExtension({
               sendToInput.apply(this);
             },
           }, {
-            content: "Load image",
+            content: "Send to node",
             disabled: !isNodeExists(),
             submenu: {
               options: getNodes().map((node) => {
@@ -1607,7 +1622,8 @@ app.registerExtension({
                 }
               }),
             },
-          }
+          },
+
         ];
         
         options.splice(

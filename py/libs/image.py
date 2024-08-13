@@ -103,11 +103,7 @@ async def get_image(request):
 async def load_images(request):
   try:
     req = await request.json()
-    input_dir = folder_paths.get_input_directory()
     file_path = req["path"]
-  
-    chk_dir(input_dir)
-
     image_list = get_images_with_metadata(file_path)
     return web.json_response(image_list)
   except Exception:
@@ -175,7 +171,7 @@ async def edit_image(request):
     "mask_name": mask_name,
     "mask_path": mask_path,
   })
-  
+
 @PromptServer.instance.routes.post("/shinich39/load-image-with-cmd/clear_image")
 async def clear_image(request):
   req = await request.json()

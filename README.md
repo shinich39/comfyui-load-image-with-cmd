@@ -2,8 +2,7 @@
 
 Load image and partially workflow with javascript.  
 
-## Features
-
+## Features  
 - Load image by index.  
 - Partially load workflow in image.  
 - Quick inpainting.  
@@ -17,9 +16,9 @@ Add node > image > Load image with CMD
 ### Added menu to Save Image node and Preview Image node  
 - Send to input  
 
-copy selected image to "/ComfyUI/input" directory.  
+Copy selected image to "/ComfyUI/input" directory.  
 
-- Load image  
+- Send to node  
 
 Load selected image at the sepecific "Load image with CMD" node.  
 

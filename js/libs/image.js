@@ -1544,11 +1544,11 @@ app.registerExtension({
       return nodes;
     }
 
-    async function saveImage(filePath) {
+    async function saveImage(filePath, dirname) {
       const response = await api.fetchApi(`/shinich39/load-image-with-cmd/save_image`, {
         method: "POST",
         headers: { "Content-Type": "application/json", },
-        body: JSON.stringify({ path: filePath }),
+        body: JSON.stringify({ path: filePath, dirname, }),
       });
     
       if (response.status !== 200) {
@@ -1558,7 +1558,7 @@ app.registerExtension({
       return true;
     }
 
-    async function sendToInput() {
+    async function sendToDir(dirname) {
       if (this.imgs) {
         // If this node has images then we add an open in new tab item
         let img;
@@ -1572,7 +1572,7 @@ app.registerExtension({
         if (img) {
           const url = new URL(img.src);
           const filePath = getPathFromURL(url);
-          await saveImage(filePath);
+          await saveImage(filePath, dirname);
         }
       }
     }
@@ -1607,7 +1607,12 @@ app.registerExtension({
           {
             content: "Send to input",
             callback: () => {
-              sendToInput.apply(this);
+              sendToDir.apply(this, ["input"]);
+            },
+          }, {
+            content: "Send to output",
+            callback: () => {
+              sendToDir.apply(this, ["output"]);
             },
           }, {
             content: "Send to node",
@@ -1622,7 +1627,7 @@ app.registerExtension({
                 }
               }),
             },
-          },
+          }, 
         ];
         
         options.splice(

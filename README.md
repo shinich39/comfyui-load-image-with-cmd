@@ -18,6 +18,10 @@ Add node > image > Load image with CMD
 
 Copy selected image to "/ComfyUI/input" directory.  
 
+- Send to output  
+
+Copy selected image to "/ComfyUI/output" directory.  
+
 - Send to node  
 
 Load selected image at the sepecific "Load image with CMD" node.  

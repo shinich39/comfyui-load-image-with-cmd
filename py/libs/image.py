@@ -36,6 +36,10 @@ def chk_json(p):
     with open(p, "w") as file:
       json.dump({}, file, indent=2)
 
+def get_dir_path(dirname):
+  dir_path = os.path.dirname(inspect.getfile(PromptServer))
+  return os.path.join(dir_path, dirname)
+
 def get_now():
   return round(time.time() * 1000)
 
@@ -116,11 +120,13 @@ async def save_image(request):
     req = await request.json()
     input_dir = folder_paths.get_input_directory()
     src_path = req["path"]
+    dirname = req["dirname"]
+    dir_path = get_dir_path(dirname)
     src_name, src_ext = os.path.splitext(src_path)
     dst_name = f"{str(get_now())}{src_ext}"
-    dst_path = os.path.join(input_dir, dst_name)
+    dst_path = os.path.join(dir_path, dst_name)
 
-    chk_dir(input_dir)
+    chk_dir(dir_path)
 
     shutil.copyfile(src_path, dst_path)
 

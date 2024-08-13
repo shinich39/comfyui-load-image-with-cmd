@@ -24,10 +24,10 @@ Load selected image at the sepecific "Load image with CMD" node.
 
 ### Load image with CMD  
 Enter dir_path and index to load image.  
-Create a virtual workflow from embedded workflow in image metadata.  
+Create a virtual workflow from embedded workflow in image.  
 Canvas controls \(while focus on the node\):  
 - F5 or Ctrl + r: Reload images.  
-- Left, Right: Change index.  
+- Arrow left, right: Change index.  
 - -, =: Change canvas zoom.  
 - Mouse left click: Add mask.  
 - Mouse right click: Remove mask.  

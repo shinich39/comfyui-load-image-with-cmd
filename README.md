@@ -119,12 +119,6 @@ if (countQueues >= 5) { stop(); }
 if (countLoops >= 5) { stop(); }
 ```
 
-- Load generated image immediately  
-```js
-var saveNode = find(11); // Save Image
-loadByNode(saveNode);
-```
-
 - More methods are written in the commnad node.  
 
 ## References

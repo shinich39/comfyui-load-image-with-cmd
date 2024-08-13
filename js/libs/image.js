@@ -1335,8 +1335,11 @@ function initLoadImageNode() {
 
     cmdWidget.timer = null;
     cmdWidget.isCallbackEnabled = false;
-    cmdWidget.callback = function(v) {
+    cmdWidget.callback = function(currValue) {
       if (app.configuringGraph || !this.isCallbackEnabled) {
+        return;
+      }
+      if (this.prevValue === currValue) {
         return;
       }
       if (this.timer) {
@@ -1347,6 +1350,7 @@ function initLoadImageNode() {
         if (self.statics.COMMAND.value.trim() === "") {
           this.isCallbackEnabled = false;
           self.statics.COMMAND.value = getDefaultCommandValue();
+          self.statics.COMMAND.prevValue = self.statics.COMMAND.value;
           self.statics.setCommand(self.statics.COMMAND.value);
           this.isCallbackEnabled = true;
         }
@@ -1437,17 +1441,16 @@ async function executedHandler({ detail }) {
   // detail => null: End of generation
   for (const node of app.graph._nodes) {
     if (node.type === NODE_TYPE) {
-      const countImages = node.statics.loadedImages.length;
       const prevIndex = node.statics.getIndex();
       node.statics.updateIndex();
       const currIndex = node.statics.getIndex();
-      node.statics.clearWorkflow();
-      if (prevIndex !== currIndex && countImages > 0) {
+      if (prevIndex !== currIndex) {
         node.statics.clearImage();
+        node.statics.clearWorkflow();
         node.statics.selectImage();
         node.statics.renderImage();
+        await node.statics.renderWorkflow("executed");
       }
-      await node.statics.renderWorkflow("executed");
     }
   }
 }
@@ -1501,10 +1504,10 @@ function getDefaultCommandValue() {
   text += `\n// countLoops => Number: Number of loops.`;
   text += `\n//\n// *** Global methods ***`;
   text += `\n// stop(): Disable auto queue mode.`;
-  text += `\n// setDirPath(dirPath) => Promise: Change dir_path widget value and load images in directory.`;
-  text += `\n// setIndex(index) => Promise: Change index widget value and load image.`;
-  text += `\n// loadByFilePath(filePath) => Promise: Load image by file path.`;
-  text += `\n// loadByNode(Node) => Promise: Load generated image by Save Image node.`;
+  // text += `\n// setDirPath(dirPath) => Promise: Change dir_path widget value and load images in directory.`;
+  // text += `\n// setIndex(index) => Promise: Change index widget value and load image.`;
+  // text += `\n// loadByFilePath(filePath) => Promise: Load image by file path.`;
+  // text += `\n// loadByNode(Node) => Promise: Load generated image by Save Image node.`;
   text += `\n// find(ID|TITLE|TYPE [, isActual]) => Node`;
   text += `\n// findLast(ID|TITLE|TYPE [, isActual]) => Node`;
   text += `\n// connect(Node, Node, INPUT_NAME|OUTPUT_NAME)`;
@@ -1663,6 +1666,7 @@ app.registerExtension({
         // bug fix first run after refreshing
         node.statics.DIR_PATH.prevValue = node.statics.DIR_PATH.value; 
         node.statics.FILENAME.prevValue = node.statics.FILENAME.value;
+        node.statics.COMMAND.prevValue = node.statics.COMMAND.value;
       }
     }
 	},

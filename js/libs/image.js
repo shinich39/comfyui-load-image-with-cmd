@@ -1405,7 +1405,7 @@ function initLoadImageNode() {
         self.statics.renderImage();
         await self.statics.renderWorkflow("changeIndex");
         selectNode(self);
-      }, 256);
+      }, 128);
     }
 
     // fix widget size

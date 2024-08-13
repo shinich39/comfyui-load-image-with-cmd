@@ -1339,12 +1339,12 @@ function initLoadImageNode() {
       if (app.configuringGraph || !this.isCallbackEnabled) {
         return;
       }
-      if (this.prevValue === currValue) {
-        return;
-      }
       if (this.timer) {
         clearTimeout(this.timer);
         this.timer = null;
+      }
+      if (this.prevValue === currValue) {
+        return;
       }
       this.timer = setTimeout(async () => {
         if (self.statics.COMMAND.value.trim() === "") {

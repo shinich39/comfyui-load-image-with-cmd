@@ -11,9 +11,16 @@ const DEFAULT_DRAW_COLOR = "rgb(0,0,0)";
 const DEFAULT_MASK_RGB = [0,0,0];
 const DEFAULT_MASK_COLOR = "rgb(0,0,0)";
 const DEFAULT_BRUSH_COLOR = "rgba(0,0,0,0.2)";
+let movingMode = false;
 
 // global event
-document.addEventListener('pointerup', (event) => pointerUpEvent(event));
+window.addEventListener('pointerup', (e) => pointerUpEvent(e), true);
+window.addEventListener('keydown', (e) => {
+  const { key } = e;
+  if (key === " ") {
+    spaceBarDownEvent(e);
+  }
+}, true);
 
 function initMaskEditor() {
   const self = this;
@@ -99,7 +106,6 @@ function initMaskEditor() {
   widget.panY = 0;
   widget.brushSize = 100;
   widget.drawingMode = false;
-  widget.movingMode = false;
   widget.drawColor = DEFAULT_DRAW_COLOR;
   widget.brushColor = DEFAULT_BRUSH_COLOR;
   widget.lastx = -1;
@@ -174,6 +180,15 @@ function initMaskEditor() {
 
   // node keydown event
   const onKeyDown = this.onKeyDown;
+  this.onKeyDown = function (e) {
+    keyDownEvent.apply(this, [e]);
+    onKeyDown?.apply(this, arguments);
+  };
+
+  // canvas
+  widget.maskCanvas.addEventListener("pointermove", function(e) {
+    
+  });
   this.onKeyDown = function (e) {
     keyDownEvent.apply(this, [e]);
     onKeyDown?.apply(this, arguments);
@@ -371,7 +386,7 @@ function pointerDownEvent(self, e) {
   // wheel click
   if (e.buttons == 4) {
     e.preventDefault();
-    this.movingMode = true;
+    movingMode = true;
     return;
   }
 
@@ -439,13 +454,15 @@ function drawMoveEvent(self, e) {
   this.showBrush();
 
   // wheel click
-  if (this.movingMode) {
+  if (movingMode) {
     if (
       typeof e.movementX === "number" && 
       typeof e.movementY === "number"
     ) {
-      app.canvas.ds.mouseDrag(e.movementX, e.movementY);
-      app.canvas.draw(true, true);
+      requestAnimationFrame(function() {
+        app.canvas.ds.mouseDrag(e.movementX, e.movementY);
+        app.canvas.draw(true, true);
+      });
       return;
     }
   }
@@ -494,7 +511,6 @@ function drawMoveEvent(self, e) {
 
     if (diff > 20 && !this.drawingMode) {
       requestAnimationFrame(() => {
-
         if (e.shiftKey) {
           maskCtx.beginPath();
           maskCtx.fillStyle = DEFAULT_MASK_COLOR;
@@ -738,25 +754,22 @@ async function keyDownEvent(e) {
       this.statics.MASK.showBrush();
     }
   } else if (key === " ") {
-    if (this.statics?.MASK) {
-      this.statics.MASK.movingMode = true;
-      window.addEventListener("keyup", spaceBarUpEvent);
-    }
+    spaceBarDownEvent(e);
   }
 }
 
-async function spaceBarUpEvent(e) {
-  e.preventDefault();
+function spaceBarDownEvent(e) {
+  movingMode = true;
+
+  // add event
+  window.addEventListener("keyup", spaceBarUpEvent);
+}
+
+function spaceBarUpEvent(e) {
+  movingMode = false;
 
   // remove event
   window.removeEventListener("keyup", spaceBarUpEvent);
-
-  // reset all moving mode
-  for (const node of app.graph._nodes) {
-    if (node.statics?.MASK) {
-      node.statics.MASK.movingMode = false;
-    }
-  }
 }
 
 function pointerUpEvent(e) {
@@ -773,7 +786,7 @@ function pointerUpEvent(e) {
       }
 
       // select node
-      if (w.movingMode) {
+      if (movingMode) {
         selectNode(node);
         document.getElementById("graph-canvas").focus();
       }
@@ -781,7 +794,7 @@ function pointerUpEvent(e) {
       w.mousedown_x = null;
       w.mousedown_y = null;
       w.drawingMode = false;
-      w.movingMode = false;
+      movingMode = false;
     }
   }
 }

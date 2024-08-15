@@ -523,7 +523,7 @@ function initLoadImageNode() {
             const stop = () => unsetAutoQueue();
             const find = (query, isActual) => getNodeFromWorkflows(query, isActual, false);
             const findLast = (query, isActual) => getNodeFromWorkflows(query, isActual, true);
-            const connect = (a, b, name) => connectNodes(a, b, name);
+            const connect = (a, b, outputName, inputName) => connectNodes(a, b, outputName, inputName);
             const getValues = (node, isActual) => getWidgetValues(node, isActual);
             const setValues = (node, values, isActual) => setWidgetValues(node, values, isActual);
             const getNodes = (srcNode, dstNode, name, replacements) => loadFromVirtualNode(srcNode, dstNode, name, {
@@ -564,29 +564,42 @@ function initLoadImageNode() {
           renderCanvas();
         })();
     
-        function connectNodes(a, b, name) {
+        function connectNodes(a, b, outputName, inputName) {
           a = getActualNode(a);
           b = getActualNode(b);
+
+          if (!inputName) {
+            inputName = outputName;
+          }
+
+          outputName = outputName.toUpperCase();
+          inputName = inputName.toLowerCase();
     
-          let output = a.outputs?.find(e => e.name === name); // uppercase
+          let output = outputName ? a.outputs?.find(e => e.name.toUpperCase() === outputName) : null; // uppercase
           let outputSlot;
-          let input = b.inputs?.find(e => e.name === name);
+          let input = inputName ? b.inputs?.find(e => e.name.toLowerCase() === inputName) : null; // lowercase
           let inputSlot;
     
           if (output) {
             outputSlot = a.findOutputSlot(output.name);
-            input = b.inputs?.find(e => e.type === output.type && !e.link);
-            if (input) {
-              inputSlot = b.findInputSlot(input.name);
-            }
-          } else if (input) {
-            inputSlot = b.findInputSlot(input.name);
-            output = a.outputs?.find(e => e.type === input.type);
-            if (output) {
-              outputSlot = a.findOutputSlot(output.name);
+            if (!input) {
+              input = b.inputs?.find(e => e.type === output.type);
+              if (input) {
+                inputSlot = b.findInputSlot(input.name);
+              }
             }
           }
-    
+
+          if (input) {
+            inputSlot = b.findInputSlot(input.name);
+            if (!output) {
+              output = a.outputs?.find(e => e.type === input.type);
+              if (output) {
+                outputSlot = a.findOutputSlot(output.name);
+              }
+            }
+          }
+
           if (typeof inputSlot === "number" && typeof outputSlot === "number") {
             a.connect(outputSlot, b.id, inputSlot);
           }
@@ -1510,7 +1523,7 @@ function getDefaultCommandValue() {
   // text += `\n// loadByNode(Node) => Promise: Load generated image by Save Image node.`;
   text += `\n// find(ID|TITLE|TYPE [, isActual]) => Node`;
   text += `\n// findLast(ID|TITLE|TYPE [, isActual]) => Node`;
-  text += `\n// connect(Node, Node, INPUT_NAME|OUTPUT_NAME)`;
+  text += `\n// connect(OutputNode, inputNode, OUTPUT_NAME, INPUT_NAME|null)`;
   text += `\n// getValues(Node [, isActual]) => Object: Get widget values in node.`;
   text += `\n// setValues(Node, values [, isActual])`;
   text += `\n// getNode(srcNode, dstNode, name, [, replaceNodes]) => Node[]: Get nodes or values from image workflow.`;

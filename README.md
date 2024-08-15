@@ -88,6 +88,7 @@ var lastSampler = SAMPLER;
 var srcSampler = lastSampler; // Last sampler in virtual workflow
 var dstSampler = find(2); // KSampler node in actual workflow
 var replaceNodes = [1]; // ID of Load Checkpoint node in actual workflow
+
 getNode(srcSampler, dstSampler, "positive", replaceNodes);
 getNode(srcSampler, "KSampler", "negative", replaceNodes);
 getNode(srcSampler, 2, "latent_image");
@@ -107,6 +108,18 @@ setValues(dstSampler, { seed: SEED }); // Set random seed
 // case 2
 getNode(srcSampler, dstSampler, "seed"); // Get Seed from image
 getNode(srcSampler, dstSampler, "denoise");
+```
+
+- Connect two nodes  
+```js
+var a = find(1); // Apply ControlNet (Advanced)
+var b = find(2); // KSampler
+
+// case 1
+connect(a, b, "positive");
+
+// case 2
+connect(a, b, "positive", "positive");
 ```
 
 - Stop after run 5 (In auto queue mode)  

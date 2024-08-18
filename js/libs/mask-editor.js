@@ -186,9 +186,6 @@ function initMaskEditor() {
   };
 
   // canvas
-  widget.maskCanvas.addEventListener("pointermove", function(e) {
-    
-  });
   this.onKeyDown = function (e) {
     keyDownEvent.apply(this, [e]);
     onKeyDown?.apply(this, arguments);

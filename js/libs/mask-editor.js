@@ -14,13 +14,27 @@ const DEFAULT_BRUSH_COLOR = "rgba(0,0,0,0.2)";
 let movingMode = false;
 
 // global event
-window.addEventListener('pointerup', (e) => pointerUpEvent(e), true);
-window.addEventListener('keydown', (e) => {
-  const { key } = e;
-  if (key === " ") {
-    spaceBarDownEvent(e);
+document.addEventListener('pointerup', pointerUpEvent, true);
+document.addEventListener('keydown', (e) => {
+  const { key, ctrlKey, metaKey, shiftKey } = e;
+  if (key !== " ") {
+    return;
   }
+  if (e.target != document.getElementById("graph-canvas") && e.target != document.body) {
+    return;
+  }
+  e.preventDefault();
+  e.stopPropagation();
+  spaceBarDownEvent(e);
 }, true);
+document.addEventListener('pointermove', (e) => {
+  if (!movingMode) {
+    return;
+  }
+  e.preventDefault();
+  // e.stopPropagation();
+  moveCanvas(e.movementX, e.movementY);
+});
 
 function initMaskEditor() {
   const self = this;
@@ -168,6 +182,7 @@ function initMaskEditor() {
   widget.maskCanvas.addEventListener('pointermove', (event) => widget.drawMoveEvent(widget, event));
 
   // prevent context menu for removing mask
+  widget.origCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
   widget.drawCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
   widget.maskCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -183,14 +198,10 @@ function initMaskEditor() {
   this.onKeyDown = function (e) {
     keyDownEvent.apply(this, [e]);
     onKeyDown?.apply(this, arguments);
+    selectNode(this);
   };
 
   // canvas
-  this.onKeyDown = function (e) {
-    keyDownEvent.apply(this, [e]);
-    onKeyDown?.apply(this, arguments);
-  };
-
   function imagesLoaded() {
     if (!widget.origImgLoaded || !widget.drawImgLoaded || !widget.maskImgLoaded) {
       return;
@@ -369,10 +380,7 @@ function pointerMoveEvent(self, e) {
   this.showBrush();
 }
 
-function pointerDownEvent(self, e) {
-  // select node
-  selectNode(this.node);
-  
+function pointerDownEvent(self, e) {  
   // set brush color
   if ((e.ctrlKey || e.metaKey || e.altKey) && e.button === 0) {
     e.preventDefault();
@@ -396,6 +404,9 @@ function pointerDownEvent(self, e) {
   // left click
   if ([0, 2, 5].includes(e.button)) {
     e.preventDefault();
+
+    // select node
+    selectNode(this.node);
 
     this.drawingMode = true;
 
@@ -452,16 +463,7 @@ function drawMoveEvent(self, e) {
 
   // wheel click
   if (movingMode) {
-    if (
-      typeof e.movementX === "number" && 
-      typeof e.movementY === "number"
-    ) {
-      requestAnimationFrame(function() {
-        app.canvas.ds.mouseDrag(e.movementX, e.movementY);
-        app.canvas.draw(true, true);
-      });
-      return;
-    }
+    return;
   }
 
   let left_button_down = window.TouchEvent && e instanceof TouchEvent || e.buttons == 1;
@@ -732,41 +734,61 @@ async function clearEvent() {
   // this.origImg.src = getImageURL(node.statics.selectedImage.origPath);
 }
 
+function moveCanvas(x, y) {
+  if (typeof x === "number" && typeof y === "number") {
+    requestAnimationFrame(function() {
+      app.canvas.ds.mouseDrag(x, y);
+      app.canvas.draw(true, true);
+    });
+  }
+}
+
 async function keyDownEvent(e) {
   const { key, ctrlKey, metaKey, shiftKey } = e;
   if (key === "-" || key === "=") {
     e.preventDefault();
     e.stopPropagation();
-    let n = key === "-" ? 1 : -1;
-    const prevScale = app.canvas.ds.scale;
-    const nextScale = Math.max(0.5, Math.min(10, Math.round((prevScale - n) * 10) / 10));
-    const cx = app.canvas.ds.element.width / 2;
-    const cy = app.canvas.ds.element.height / 2;
-    app.canvas.ds.changeScale(nextScale, [cx, cy]);
-    app.canvas.graph.change();
-    selectNode(this);
-
-    // fix brush size
-    if (this.statics?.MASK) {
-      this.statics.MASK.showBrush();
-    }
+    zoomHandler(e);
   } else if (key === " ") {
+    e.preventDefault();
+    e.stopPropagation();
     spaceBarDownEvent(e);
   }
 }
 
-function spaceBarDownEvent(e) {
-  movingMode = true;
+function zoomHandler(e) {
+  const { key, ctrlKey, metaKey, shiftKey } = e;
+  let n = key === "-" ? 1 : -1;
+  const prevScale = app.canvas.ds.scale;
+  const nextScale = Math.max(0.5, Math.min(10, Math.round((prevScale - n) * 10) / 10));
+  const cx = app.canvas.ds.element.width / 2;
+  const cy = app.canvas.ds.element.height / 2;
+  app.canvas.ds.changeScale(nextScale, [cx, cy]);
+  app.canvas.graph.change();
+  selectNode(this);
 
-  // add event
-  window.addEventListener("keyup", spaceBarUpEvent);
+  // fix brush size
+  if (this.statics?.MASK) {
+    this.statics.MASK.showBrush();
+  }
+}
+
+function spaceBarDownEvent(e) {
+  const { key, ctrlKey, metaKey, shiftKey } = e;
+  if (key === " ") {
+    // e.preventDefault();
+    movingMode = true;
+    document.addEventListener("keyup", spaceBarUpEvent, true);
+  }
 }
 
 function spaceBarUpEvent(e) {
-  movingMode = false;
-
-  // remove event
-  window.removeEventListener("keyup", spaceBarUpEvent);
+  const { key } = e;
+  if (key === " ") {
+    // e.preventDefault();
+    movingMode = false;
+    document.removeEventListener("keyup", spaceBarUpEvent);
+  }
 }
 
 function pointerUpEvent(e) {
@@ -777,14 +799,13 @@ function pointerUpEvent(e) {
     if (node.statics?.MASK) {
       const w = node.statics.MASK;
 
-      // call save event
       if (w.drawingMode) {
         w.saveEvent();
+        selectNode(node);
       }
 
-      // select node
       if (movingMode) {
-        selectNode(node);
+        // selectNode(node);
         document.getElementById("graph-canvas").focus();
       }
 

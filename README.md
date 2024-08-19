@@ -35,13 +35,11 @@ Canvas controls \(while focus on the node\):
 - -, =: Change canvas zoom.  
 - Mouse left click: Add mask.  
 - Mouse right click: Remove mask.  
-- Ctrl + left click: Change brush color to selected pixel.  
+- Ctrl or Alt + Mouse L/R click: Change brush color to selected pixel.  
 - Shift + Mouse left click: Drawing.  
 - Shift + Mouse right click: Remove drawing.  
 - Mouse wheel scroll: Change brush size.  
-- Shift + Mouse wheel scroll: Change brush size.  
-- Mouse move while wheel click: Move canvas.  
-- Mouse move while press space bar: Move canvas.  
+- Mouse move while wheel click or press space bar: Move canvas.  
   
 Connect PrimitiveNode to "command" input for loading workflow.  
 Copy and paste to textarea on PrimitiveNode and start generating it after customize.  

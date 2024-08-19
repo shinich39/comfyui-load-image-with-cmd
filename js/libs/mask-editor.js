@@ -176,10 +176,10 @@ function initMaskEditor() {
   widget.getDrawBlob = getDrawBlob;
   widget.clearEvent = clearEvent;
 
-  widget.maskCanvas.addEventListener('wheel', (event) => widget.handleWheelEvent(widget, event));
-  widget.maskCanvas.addEventListener('pointerleave', (event) => widget.hideBrush(widget, event));
-  widget.maskCanvas.addEventListener('pointerdown', (event) => widget.pointerDownEvent(widget, event));
-  widget.maskCanvas.addEventListener('pointermove', (event) => widget.drawMoveEvent(widget, event));
+  widget.maskCanvas.addEventListener('wheel', (e) => widget.handleWheelEvent(widget, e));
+  widget.maskCanvas.addEventListener('pointerleave', (e) => widget.hideBrush(widget, e));
+  widget.maskCanvas.addEventListener('pointerdown', (e) => widget.pointerDownEvent(widget, e));
+  widget.maskCanvas.addEventListener('pointermove', (e) => widget.drawMoveEvent(widget, e));
 
   // prevent context menu for removing mask
   widget.origCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -363,7 +363,7 @@ function handleWheelEvent(self, e) {
   e.preventDefault();
 
   const imageScale = this.origCanvas.offsetWidth / this.origCanvas.width;
-  let factor = e.shiftKey ? 3 : 0.5;
+  let factor = (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) ? 3 : 0.5;
 
   // adjust brush size
   if(e.deltaY < 0)
@@ -381,13 +381,6 @@ function pointerMoveEvent(self, e) {
 }
 
 function pointerDownEvent(self, e) {  
-  // set brush color
-  if ((e.ctrlKey || e.metaKey || e.altKey) && e.button === 0) {
-    e.preventDefault();
-    this.setBrushColor(self, e);
-    return;
-  }
-
   // wheel click
   if (e.buttons == 4) {
     e.preventDefault();
@@ -401,9 +394,15 @@ function pointerDownEvent(self, e) {
     this.last_pressure = e.pressure;
   }
 
-  // left click
+  // left click and right click
   if ([0, 2, 5].includes(e.button)) {
     e.preventDefault();
+
+    // set brush color
+    if ((e.ctrlKey || e.metaKey || e.altKey)) {
+      this.setBrushColor(self, e);
+      return;
+    }
 
     // select node
     selectNode(this.node);
@@ -469,11 +468,10 @@ function drawMoveEvent(self, e) {
   let left_button_down = window.TouchEvent && e instanceof TouchEvent || e.buttons == 1;
   let right_button_down = [2, 5, 32].includes(e.buttons);
 
-  if ((e.ctrlKey || e.metaKey || e.altKey) && left_button_down) {
+  if ((e.ctrlKey || e.metaKey || e.altKey) && (left_button_down || right_button_down)) {
     this.setBrushColor(self, e);
     return;
   }
-
   if (!this.drawingMode) {
     return;
   }
@@ -576,7 +574,6 @@ function drawMoveEvent(self, e) {
 
     if(diff > 20 && !this.drawingMode) { // cannot tracking drawingMode for touch event
       requestAnimationFrame(() => {
-
         if (!e.shiftKey) {
           maskCtx.beginPath();
           maskCtx.globalCompositeOperation = "destination-out";

@@ -13,6 +13,9 @@ import {
   parseObjectURL,
   getPathFromURL,
   getRandomSeed,
+  cancelGeneration,
+  isAutoQueueMode,
+  unsetAutoQueue,
 } from "./comfy-utils.js";
 
 const NODE_TYPE = "LoadImageWithCMD";
@@ -255,15 +258,15 @@ function initLoadImageNode() {
     }).bind(this);
 
     this.statics.updateIndex = (function(idx) {
+      // prevent callback
+      this.statics.INDEX.isCallbackEnabled = false;
       try {
         if (!this.statics.isInitialized) {
           throw new Error(`node #${this.id} has not been initialized.`);
         }
-        this.statics.INDEX.isCallbackEnabled = false; // prevent callback
-
-        let isFixed = typeof idx === "number";
-        let images = this.statics.loadedImages;
-        let m = this.statics.MODE.value;
+        const isFixed = typeof idx === "number";
+        const images = this.statics.loadedImages;
+        const m = this.statics.MODE.value;
 
         if (!isFixed) {
           idx = this.statics.getIndex();
@@ -276,21 +279,28 @@ function initLoadImageNode() {
           }
         }
 
-        let clampedIdx = this.statics.getIndex(idx);
+        const clampedIdx = Math.round(this.statics.getIndex(idx));
+        this.statics.INDEX.value = clampedIdx;
+      } catch(err) {
+        console.error(err);
+      }
+      this.statics.INDEX.isCallbackEnabled = true;
+    }).bind(this);
 
-        this.statics.INDEX.value = Math.round(clampedIdx);
-
-        // increase counts
-        if (!isFixed) {
-          this.statics.countQueues += 1;
-          if (m === "increment" && clampedIdx < idx) {
-            this.statics.countLoops += 1;
-          } else if (m === "decrement" && clampedIdx > idx) {
-            this.statics.countLoops += 1;
-          }
+    this.statics.updateCounter = (function() {
+      try {
+        if (!this.statics.isInitialized) {
+          throw new Error(`node #${this.id} has not been initialized.`);
         }
-
-        this.statics.INDEX.isCallbackEnabled = true;
+        const m = this.statics.MODE.value;
+        const images = this.statics.loadedImages;
+        const idx = this.statics.INDEX.value;
+        this.statics.countQueues += 1;
+        if (m === "increment" && idx >= images.length - 1) {
+          this.statics.countLoops += 1;
+        } else if (m === "decrement" && idx <= 0) {
+          this.statics.countLoops += 1;
+        }
       } catch(err) {
         console.error(err);
       }
@@ -301,8 +311,6 @@ function initLoadImageNode() {
         if (!this.statics.isInitialized) {
           throw new Error(`node #${this.id} has not been initialized.`);
         }
-
-        // reset
         this.statics.countQueues = 0;
         this.statics.countLoops = 0;
         this.statics.countErrors = 0;
@@ -521,7 +529,7 @@ function initLoadImageNode() {
             const countErrors = this.statics.countErrors;
      
             // global methods
-            const stop = () => unsetAutoQueue();
+            const stop = () => { unsetAutoQueue(); setTimeout(cancelGeneration, 256); };
             const find = (query, isActual) => getNodeFromWorkflows(query, isActual, false);
             const findLast = (query, isActual) => getNodeFromWorkflows(query, isActual, true);
             const connect = (a, b, outputName, inputName) => connectNodes(a, b, outputName, inputName);
@@ -542,10 +550,10 @@ function initLoadImageNode() {
             const setValue = setValues;
     
             // the methods available after "executed"
-            const setDirPath = async (dirPath) => await changeDirPath.apply(this, [dirPath]);
-            const setIndex = async (index) => await changeIndex.apply(this, [index]);
-            const loadByFilePath = async (filePath) => await loadImageByPath.apply(this, [filePath]);
-            const loadByNode = async (node) => await loadImageByNode.apply(this, [node]);
+            // const setDirPath = async (dirPath) => await changeDirPath.apply(this, [dirPath]);
+            // const setIndex = async (index) => await changeIndex.apply(this, [index]);
+            // const loadByFilePath = async (filePath) => await loadImageByPath.apply(this, [filePath]);
+            // const loadByNode = async (node) => await loadImageByNode.apply(this, [node]);
     
             // callbacks
             let onError = (err) => { console.error(err); };
@@ -1446,28 +1454,29 @@ function fixPreviewImages({ detail }) {
   }
 }
 
-async function executedHandler({ detail }) {
-  // detail => String: NodeId
-  if (detail) {
-    return;
-  }
-
-  // detail => null: End of generation
-  for (const node of app.graph._nodes) {
-    if (node.type === NODE_TYPE) {
-      const prevIndex = node.statics.getIndex();
-      node.statics.updateIndex();
-      const currIndex = node.statics.getIndex();
-      if (prevIndex !== currIndex) {
-        node.statics.clearImage();
-        node.statics.clearWorkflow();
-        node.statics.selectImage();
-        node.statics.renderImage();
-        node.statics.renderWorkflow("executed");
-      }
-    }
-  }
-}
+// deprecated
+// function executedHandler({ detail }) {
+//   // detail => String: NodeId
+//   if (detail) {
+//     return;
+//   }
+//   // detail => null: End of generation
+//   for (const node of app.graph._nodes) {
+//     if (node.type === NODE_TYPE) {
+//       const prevIndex = node.statics.getIndex();
+//       node.statics.updateIndex();
+//       node.statics.updateCounter();
+//       const currIndex = node.statics.getIndex();
+//       if (prevIndex !== currIndex) {
+//         node.statics.clearImage();
+//         node.statics.clearWorkflow();
+//         node.statics.selectImage();
+//         node.statics.renderImage();
+//         node.statics.renderWorkflow("executed");
+//       }
+//     }
+//   }
+// }
 
 async function loadImages(dirPath) {
   const response = await api.fetchApi(`/shinich39/load-image-with-cmd/load_images`, {
@@ -1533,12 +1542,43 @@ function getDefaultCommandValue() {
 
 // api.addEventListener("promptQueued", () => {});
 api.addEventListener("executed", fixPreviewImages);
-api.addEventListener("executing", executedHandler);
+
+// deprecated => app.queuePrompt
+// api.addEventListener("executing", executedHandler);
 
 app.registerExtension({
 	name: `shinich39.${NODE_TYPE}`,
   setup() {
-    // ...
+
+    // render before start a new queue
+    const origQueuePrompt = app.queuePrompt;
+    app.queuePrompt = async function(number, batchCount) {
+
+      // end of queue
+      for (const node of app.graph._nodes) {
+        if (node.type === NODE_TYPE) {
+          const isFirstQueue = node.statics.countQueues === 0;
+          if (isFirstQueue) {
+            node.statics.updateCounter();
+          } else {
+            const prevIndex = node.statics.getIndex();
+            node.statics.updateIndex();
+            node.statics.updateCounter();
+            const currIndex = node.statics.getIndex();
+            if (prevIndex !== currIndex) {
+              node.statics.clearImage();
+              node.statics.clearWorkflow();
+              node.statics.selectImage();
+              node.statics.renderImage();
+              node.statics.renderWorkflow("executed");
+            }
+          }
+        }
+      }
+
+      const r = await origQueuePrompt.apply(this, arguments);
+      return r;
+    }
   },
   async beforeRegisterNodeDef(nodeType, nodeData, app) {
     

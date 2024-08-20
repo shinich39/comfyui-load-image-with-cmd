@@ -142,7 +142,7 @@ function initLoadImageNode() {
       selectNode(this);
     }).bind(this);
 
-    this.statics.clearImage = (async function() {
+    this.statics.clearImage = (function() {
       if (!this.statics.isInitialized) {
         throw new Error(`node #${this.id} has not been initialized.`);
       }
@@ -160,7 +160,7 @@ function initLoadImageNode() {
       w.maskImg.src = "";
     }).bind(this);
 
-    this.statics.selectImage = (async function() {
+    this.statics.selectImage = (function() {
       if (!this.statics.isInitialized) {
         throw new Error(`node #${this.id} has not been initialized.`);
       }
@@ -176,7 +176,7 @@ function initLoadImageNode() {
       this.statics.FILENAME.value = this.statics.selectedImage.origName;
     }).bind(this);
 
-    this.statics.renderImage = (async function() {
+    this.statics.renderImage = (function() {
       if (!this.statics.isInitialized) {
         throw new Error(`node #${this.id} has not been initialized.`);
       }
@@ -377,6 +377,7 @@ function initLoadImageNode() {
         if (!this.statics.isInitialized) {
           throw new Error(`node #${this.id} has not been initialized.`);
         }
+        
         const nodes = [];
         for (const n of app.graph._nodes) {
           if (n && n.properties && n.properties.parentId == this.id) {

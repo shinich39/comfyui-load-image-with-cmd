@@ -138,7 +138,7 @@ function initLoadImageNode() {
       this.statics.clearImage();
       this.statics.selectImage();
       this.statics.renderImage();
-      await this.statics.renderWorkflow("changeIndex");
+      this.statics.renderWorkflow("changeIndex");
       selectNode(this);
     }).bind(this);
 
@@ -377,7 +377,7 @@ function initLoadImageNode() {
         if (!this.statics.isInitialized) {
           throw new Error(`node #${this.id} has not been initialized.`);
         }
-        
+
         const nodes = [];
         for (const n of app.graph._nodes) {
           if (n && n.properties && n.properties.parentId == this.id) {
@@ -396,7 +396,7 @@ function initLoadImageNode() {
       }
     }).bind(this);
   
-    this.statics.renderWorkflow = (async function(type) {
+    this.statics.renderWorkflow = (function(type) {
       try {
         if (!this.statics.isInitialized) {
           throw new Error(`node #${this.id} has not been initialized.`);
@@ -746,7 +746,7 @@ function initLoadImageNode() {
           this.statics.clearImage();
           this.statics.selectImage();
           this.statics.renderImage();
-          await this.statics.renderWorkflow("changeIndex");
+          this.statics.renderWorkflow("changeIndex");
           selectNode(this);
         }
     
@@ -763,7 +763,7 @@ function initLoadImageNode() {
           this.statics.clearImage();
           this.statics.selectImage();
           this.statics.renderImage();
-          await this.statics.renderWorkflow("changeDirPath");
+          this.statics.renderWorkflow("changeDirPath");
           selectNode(this);
         }
     
@@ -1299,7 +1299,7 @@ function initLoadImageNode() {
         this.statics.clearImage();
         this.statics.selectImage();
         this.statics.renderImage();
-        await this.statics.renderWorkflow("changeIndex");
+        this.statics.renderWorkflow("changeIndex");
         selectNode(this);
       } else if ((key === "r" && (ctrlKey || metaKey)) || key === "F5") {
         e.preventDefault();
@@ -1311,7 +1311,7 @@ function initLoadImageNode() {
         this.statics.clearImage();
         this.statics.selectImage();
         this.statics.renderImage();
-        await this.statics.renderWorkflow("refresh");
+        this.statics.renderWorkflow("refresh");
         selectNode(this);
       }
       return r;
@@ -1341,7 +1341,7 @@ function initLoadImageNode() {
       if (link_info && link_info.target_slot === 0) {
         this.statics.clearWorkflow();
         if (connected) {
-          await this.statics.renderWorkflow("changeConnection");
+          this.statics.renderWorkflow("changeConnection");
         }
       }
       return r;
@@ -1369,7 +1369,7 @@ function initLoadImageNode() {
           this.isCallbackEnabled = true;
         }
         self.statics.clearWorkflow();
-        await self.statics.renderWorkflow("changeCommand");
+        self.statics.renderWorkflow("changeCommand");
       }, 512);
     }
 
@@ -1389,7 +1389,7 @@ function initLoadImageNode() {
         self.statics.clearImage();
         self.statics.selectImage();
         self.statics.renderImage();
-        await self.statics.renderWorkflow("changeDirPath");
+        self.statics.renderWorkflow("changeDirPath");
         selectNode(self);
       }
     }
@@ -1417,7 +1417,7 @@ function initLoadImageNode() {
         self.statics.clearImage();
         self.statics.selectImage();
         self.statics.renderImage();
-        await self.statics.renderWorkflow("changeIndex");
+        self.statics.renderWorkflow("changeIndex");
         selectNode(self);
       }, 128);
     }
@@ -1463,7 +1463,7 @@ async function executedHandler({ detail }) {
         node.statics.clearWorkflow();
         node.statics.selectImage();
         node.statics.renderImage();
-        await node.statics.renderWorkflow("executed");
+        node.statics.renderWorkflow("executed");
       }
     }
   }
@@ -1671,7 +1671,7 @@ app.registerExtension({
         node.statics.clearImage();
         node.statics.selectImage();
         node.statics.renderImage();
-        await node.statics.renderWorkflow("initialize");
+        node.statics.renderWorkflow("initialize");
 
         node.statics.DIR_PATH.isCallbackEnabled = true;
         node.statics.INDEX.isCallbackEnabled = true;
@@ -1700,7 +1700,7 @@ app.registerExtension({
           node.statics.clearImage();
           node.statics.selectImage();
           node.statics.renderImage();
-          await node.statics.renderWorkflow("initialize");
+          node.statics.renderWorkflow("initialize");
 
           node.statics.DIR_PATH.isCallbackEnabled = true;
           node.statics.INDEX.isCallbackEnabled = true;
